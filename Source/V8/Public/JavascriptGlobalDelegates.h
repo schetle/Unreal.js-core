@@ -1,5 +1,11 @@
 #pragma once
 
+#include "CoreMinimal.h"
+#include "ObjectMacros.h"
+#include "Object.h"
+#include "UObjectGlobals.h"
+#include "ScriptMacros.h"
+#include "Engine/World.h"
 #include "JavascriptGlobalDelegates.generated.h"
 
 UCLASS()
@@ -44,7 +50,7 @@ public:
 	}
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Scripting | Javascript")
-	void PostLoadMap();
+	void PostLoadMapWithWorld(UWorld* World);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Scripting | Javascript")
 	void PostDemoPlay();

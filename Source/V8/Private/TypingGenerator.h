@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Config.h"
+#include "FileHelper.h"
 
 struct TypingGeneratorBase
 {
@@ -247,7 +248,7 @@ struct TypingGenerator : TypingGeneratorBase
 		for (decltype(MaxStringLiteralEnumValue) Index = 0; Index < MaxStringLiteralEnumValue; ++Index)
 		{
 
-			auto name = source->GetEnumName(Index);
+			auto name = source->GetNameStringByIndex(Index);
 			if ( StringLiteralVisited.Find(name) ) continue;
 			StringLiteralVisited.Add(name);
 		}
@@ -275,7 +276,7 @@ struct TypingGenerator : TypingGeneratorBase
 
 		for (decltype(MaxEnumValue) Index = 0; Index < MaxEnumValue; ++Index)
 		{
-			auto name = source->GetEnumName(Index);
+			auto name = source->GetNameStringByIndex(Index);
 
 			if (Visited.Find(name)) continue;
 			Visited.Add(name);

@@ -1,6 +1,9 @@
 #include "SJavascriptConsole.h"
 #include "JavascriptConsoleModule.h"
 #include "SJavascriptLog.h"
+#include "SlateOptMacros.h"
+#include "SSpacer.h"
+#include "EditorStyleSet.h"
 
 namespace JavascriptConsoleDefs
 {

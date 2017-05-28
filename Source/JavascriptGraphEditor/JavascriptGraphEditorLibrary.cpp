@@ -1,7 +1,7 @@
 #include "JavascriptGraphEditorLibrary.h"
 #include "JavascriptGraphConnectionDrawingPolicy.h"
 #include "SJavascriptGraphEdNode.h"
-#include "Editor/GraphEditor/Private/SGraphPanel.h"
+#include "Editor/GraphEditor/Public/SGraphPanel.h"
 
 #define LOCTEXT_NAMESPACE "JavascriptGraph"
 
@@ -96,7 +96,7 @@ class UEdGraphNode* UJavascriptGraphEditorLibrary::GetOwningNode(FJavascriptEdGr
 
 EEdGraphPinDirection UJavascriptGraphEditorLibrary::GetDirection(FJavascriptEdGraphPin A)
 {
-	return A.GraphPin ? A.GraphPin->Direction : EEdGraphPinDirection::EGPD_Input;
+	return A.GraphPin ? ((EEdGraphPinDirection)A.GraphPin->Direction) : EEdGraphPinDirection::EGPD_Input;
 }
 
 TArray<FJavascriptEdGraphPin> TransformPins(const TArray<UEdGraphPin*>& Pins)

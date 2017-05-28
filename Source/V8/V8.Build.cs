@@ -33,7 +33,7 @@ public class V8 : ModuleRules
         return new int[] { Int32.Parse(VersionMajor), Int32.Parse(VersionMinor), Int32.Parse(VersionPatch) };
     }
 
-    public V8(TargetInfo Target)
+    public V8(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PrivateIncludePaths.AddRange(new string[]
@@ -65,6 +65,8 @@ public class V8 : ModuleRules
             "libWebSockets"
         });
 
+        HackWebSocketIncludeDir(Target);
+
         if (UEBuildConfiguration.bBuildEditor)
         {
             PrivateDependencyModuleNames.AddRange(new string[] 
@@ -78,7 +80,31 @@ public class V8 : ModuleRules
         LoadV8(Target);
     }
 
-    private bool LoadV8(TargetInfo Target)
+    private void HackWebSocketIncludeDir(ReadOnlyTargetRules Target)
+    {
+        string WebsocketPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");
+        string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
+        	Target.Platform.ToString();
+        
+        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
+			(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
+        {
+            PlatformSubdir = Path.Combine(PlatformSubdir, WindowsPlatform.GetVisualStudioCompilerVersionName());
+		}        
+
+        PrivateIncludePaths.Add(Path.Combine(WebsocketPath, "include"));
+        PrivateIncludePaths.Add(Path.Combine(WebsocketPath, "include", PlatformSubdir));
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+			string platform = "/Linux/" + Target.Architecture;
+			string IncludePath = WebsocketPath + "/include" + platform;
+			
+            PrivateIncludePaths.Add(WebsocketPath + "include/");
+			PrivateIncludePaths.Add(IncludePath);
+        }
+    }
+
+    private bool LoadV8(ReadOnlyTargetRules Target)
     {
         int[] v8_version = GetV8Version();
         bool ShouldLink_libsampler = v8_version[1] >= 3;

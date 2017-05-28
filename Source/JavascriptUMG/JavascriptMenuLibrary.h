@@ -5,6 +5,12 @@
 #include "JavascriptIsolate.h"
 #include "JavascriptComboButtonContext.h"
 #include "JavascriptMenuContext.h"
+#include "UICommandInfo.h"
+#include "MultiBoxBuilder.h"
+#include "MultiBoxExtender.h"
+#include "InputBindingManager.h"
+#include "ScriptMacros.h"
+#include "TextProperty.h"
 #include "JavascriptMenuLibrary.generated.h"
 
 UENUM()

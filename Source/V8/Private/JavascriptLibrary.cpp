@@ -3,6 +3,10 @@
 #include "JavascriptContext.h"
 #include "IV8.h"
 #include "SocketSubsystem.h"
+#include "GameFramework/GameMode.h"
+#include "Sockets.h"
+#include "EngineUtils.h"
+#include "AI/Navigation//NavigationSystem.h"
 #include "Modules/ModuleVersion.h"
 
 struct FPrivateSocketHandle
@@ -565,7 +569,7 @@ FJavascriptStreamableManager UJavascriptLibrary::CreateStreamableManager()
 
 void UJavascriptLibrary::SimpleAsyncLoad(const FJavascriptStreamableManager& Manager, FStringAssetReference const& Target, int32 Priority)
 {
-	Manager->SimpleAsyncLoad(Target, Priority);
+	Manager->RequestAsyncLoad(Target, FStreamableDelegate(), Priority, true);
 }
 
 void UJavascriptLibrary::Unload(const FJavascriptStreamableManager& Manager, FStringAssetReference const& Target)
