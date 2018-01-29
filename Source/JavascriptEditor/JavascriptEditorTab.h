@@ -1,8 +1,10 @@
 #pragma once
 
+#include "CoreMinimal.h"
 #include "SDockTab.h"
 #include "JavascriptEditorLibrary.h"
 #include "Object.h"
+#include "JavascriptEditorModule.h"
 #include "JavascriptEditorTab.generated.h"
 
 UENUM()

@@ -49,10 +49,10 @@ public class V8 : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[] 
         { 
-            "Core", "CoreUObject", "Engine", "Sockets"
+            "Core", "CoreUObject", "Engine", "Sockets", "ApplicationCore"
         });
 
-        if (UEBuildConfiguration.bBuildEditor)
+        if (Target.bBuildEditor)
         {
             PublicDependencyModuleNames.AddRange(new string[]
             {
@@ -67,7 +67,7 @@ public class V8 : ModuleRules
 
         HackWebSocketIncludeDir(Target);
 
-        if (UEBuildConfiguration.bBuildEditor)
+        if (Target.bBuildEditor)
         {
             PrivateDependencyModuleNames.AddRange(new string[] 
             { 
@@ -82,14 +82,14 @@ public class V8 : ModuleRules
 
     private void HackWebSocketIncludeDir(ReadOnlyTargetRules Target)
     {
-        string WebsocketPath = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");
+        string WebsocketPath = Path.Combine(Target.UEThirdPartySourceDirectory, "libWebSockets", "libwebsockets");
         string PlatformSubdir = (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32") ? "Win32" :
         	Target.Platform.ToString();
         
         if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 ||
 			(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
         {
-            PlatformSubdir = Path.Combine(PlatformSubdir, WindowsPlatform.GetVisualStudioCompilerVersionName());
+            PlatformSubdir = Path.Combine(PlatformSubdir, Target.WindowsPlatform.GetVisualStudioCompilerVersionName());
 		}        
 
         PrivateIncludePaths.Add(Path.Combine(WebsocketPath, "include"));
@@ -107,7 +107,7 @@ public class V8 : ModuleRules
     private bool LoadV8(ReadOnlyTargetRules Target)
     {
         int[] v8_version = GetV8Version();
-        bool ShouldLink_libsampler = v8_version[1] >= 3;
+        bool ShouldLink_libsampler = !(v8_version[0] == 5 && v8_version[1] < 3);
 
         if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
         {
@@ -137,8 +137,13 @@ public class V8 : ModuleRules
             PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "v8_base_3.lib"));
             PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "v8_libbase.lib"));
             PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "v8_libplatform.lib"));
-            
             PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "v8_nosnapshot.lib"));
+
+            if (v8_version[0] >= 6)
+            {
+                PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "v8_builtins_setup.lib"));
+                PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "v8_builtins_generators.lib"));
+            }
 
             if (ShouldLink_libsampler)
             {
@@ -163,6 +168,12 @@ public class V8 : ModuleRules
             PublicAdditionalLibraries.Add("v8_libplatform");
             PublicAdditionalLibraries.Add("v8_nosnapshot");
 
+            if (v8_version[0] >= 6)
+            {
+                PublicAdditionalLibraries.Add("v8_builtins_setup");
+                PublicAdditionalLibraries.Add("v8_builtins_generators");                
+            }
+
             if (ShouldLink_libsampler)
             {
                 PublicAdditionalLibraries.Add("v8_libsampler");
@@ -182,6 +193,12 @@ public class V8 : ModuleRules
             PublicAdditionalLibraries.Add("v8_libplatform");
             PublicAdditionalLibraries.Add("v8_nosnapshot");
 
+            if (v8_version[0] >= 6)
+            {
+                PublicAdditionalLibraries.Add("v8_builtins_setup");
+                PublicAdditionalLibraries.Add("v8_builtins_generators");                
+            }
+
             if (ShouldLink_libsampler)
             {
                 PublicAdditionalLibraries.Add("v8_libsampler");
@@ -200,6 +217,12 @@ public class V8 : ModuleRules
             PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath,"libv8_libbase.a"));
             PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath,"libv8_libplatform.a"));
             PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath,"libv8_nosnapshot.a"));
+
+            if (v8_version[0] >= 6)
+            {
+                PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "libv8_builtins_setup.a"));
+                PublicAdditionalLibraries.Add(Path.Combine(LibrariesPath, "libv8_builtins_generators.a"));
+            }
 
             if (ShouldLink_libsampler)
             {

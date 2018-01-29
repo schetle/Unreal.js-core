@@ -1,4 +1,6 @@
 #include "JavascriptUMGLibrary.h"
+#include "JavascriptWidget.h"
+#include "NativeWidgetHost.h"
 
 FJavascriptSlateStyle UJavascriptUMGLibrary::CreateSlateStyle(FName InStyleSetName)
 {
@@ -76,6 +78,18 @@ FJavascriptSlateWidget UJavascriptUMGLibrary::TakeWidget(UWidget* Widget)
 	return Out;
 }
 
+UWidget* UJavascriptUMGLibrary::SetContent(UNativeWidgetHost* TargetWidget, FJavascriptSlateWidget SlateWidget)
+{
+	UWidget* Widget = nullptr;
+	if (TargetWidget != nullptr && SlateWidget.Widget.IsValid())
+	{
+		TargetWidget->SetContent(SlateWidget.Widget.ToSharedRef());
+		Widget = Cast<UWidget>(TargetWidget);
+	}
+
+	return Widget;
+}
+
 void UJavascriptUMGLibrary::AddWindowAsNativeChild(FJavascriptSlateWidget NewWindow, FJavascriptSlateWidget RootWindow)
 {
 	auto New = StaticCastSharedPtr<SWindow>(NewWindow.Widget);
@@ -87,13 +101,13 @@ void UJavascriptUMGLibrary::AddWindowAsNativeChild(FJavascriptSlateWidget NewWin
 	}
 }
 
-void UJavascriptUMGLibrary::AddWindow(FJavascriptSlateWidget NewWindow)
+void UJavascriptUMGLibrary::AddWindow(FJavascriptSlateWidget NewWindow, const bool bShowImmediately)
 {
 	auto New = StaticCastSharedPtr<SWindow>(NewWindow.Widget);
 
 	if (New.IsValid())
 	{
-		FSlateApplication::Get().AddWindow(New.ToSharedRef());
+		FSlateApplication::Get().AddWindow(New.ToSharedRef(), bShowImmediately);
 	}
 }
 
@@ -101,15 +115,4 @@ FVector2D UJavascriptUMGLibrary::GenerateDynamicImageResource(const FName InDyna
 {
 	FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(InDynamicBrushName);
 	return FVector2D(Size.X, Size.Y);
-}
-
-FVector2D UJavascriptUMGLibrary::ComputeDesiredSize(UWidget* Widget, float LayoutScaleMultiplier)
-{
-	TSharedPtr<SWidget> SlateWidget = Widget->TakeWidget();
-	auto CompoundWidget = StaticCastSharedPtr<SCompoundWidget>(SlateWidget);
-	if (CompoundWidget.IsValid())
-	{
-		return CompoundWidget->ComputeDesiredSize(LayoutScaleMultiplier);
-	}
-	return FVector2D(0, 0);
 }

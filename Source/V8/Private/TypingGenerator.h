@@ -38,7 +38,7 @@ struct TypingGeneratorBase
 			ExportEnum(s);
 		}
 	}
-
+	virtual ~TypingGeneratorBase() {}
 	virtual void ExportClass(UClass* source) {}
 	virtual void ExportStruct(UStruct* source) {}
 	virtual void ExportEnum(UEnum* source) {}
@@ -129,7 +129,7 @@ struct TokenWriter
 		else if (auto p = Cast<UEnumProperty>(Property))
 		{
 			generator.Export(p->GetEnum());
-			push(FV8Config::Safeify(p->GetName()));
+			push(FV8Config::Safeify(p->GetEnum()->GetName()));
 		}
 		else if (auto p = Cast<UMulticastDelegateProperty>(Property))
 		{
@@ -214,7 +214,7 @@ struct TypingGenerator : TypingGeneratorBase
 	TypingGenerator(FJavascriptIsolate& InEnvironment)
 	: Environment(InEnvironment)
 	{}
-
+	virtual ~TypingGenerator() {}
 	FJavascriptIsolate& Environment;
 
 	FString Text;
@@ -241,11 +241,11 @@ struct TypingGenerator : TypingGeneratorBase
 
 		
 
-		auto MaxStringLiteralEnumValue = source->GetMaxEnumValue();
+		auto EnumCount = source->NumEnums();
 
 		TSet<FString> StringLiteralVisited;
 
-		for (decltype(MaxStringLiteralEnumValue) Index = 0; Index < MaxStringLiteralEnumValue; ++Index)
+		for (decltype(EnumCount) Index = 0; Index < EnumCount; ++Index)
 		{
 
 			auto name = source->GetNameStringByIndex(Index);
@@ -270,11 +270,9 @@ struct TypingGenerator : TypingGeneratorBase
 		w.push(enumName);
 		w.push(" : { ");
 
-		auto MaxEnumValue = source->GetMaxEnumValue();
-
 		TSet<FString> Visited;
 
-		for (decltype(MaxEnumValue) Index = 0; Index < MaxEnumValue; ++Index)
+		for (decltype(EnumCount) Index = 0; Index < EnumCount; ++Index)
 		{
 			auto name = source->GetNameStringByIndex(Index);
 
@@ -496,7 +494,7 @@ struct TypingGenerator : TypingGeneratorBase
 		}
 
 		{
-			w.push("\tstatic C(Other: UObject): ");
+			w.push("\tstatic C(Other: UObject | any): ");
 			w.push(name);
 			w.push(";\n");
 
@@ -525,6 +523,9 @@ struct TypingGenerator : TypingGeneratorBase
 	void ExportBootstrap()
 	{
 		TokenWriter w(*this);
+		w.push("declare global {\n");
+		w.push("\tfunction require(name: string): any;\n");
+		w.push("}\n\n");
 		w.push("declare function gc() : void;\n");
 		w.push("declare type UnrealEngineClass = any;\n");
 
@@ -552,6 +553,19 @@ struct TypingGenerator : TypingGeneratorBase
 		w.push("\taccess(obj : JavascriptMemoryObject): ArrayBuffer;\n");
 		w.push("}\n\n");
 		w.push("declare var memory : Memory;\n\n");
+		w.push("declare var GEngine : Engine;\n\n");
+		w.push("declare var GWorld : World;\n\n");
+		w.push("declare var Root : JavascriptComponent | any;\n\n");
+		w.push("declare namespace JSX {\n");
+		w.push("\tinterface IntrinsicElements {\n");
+		w.push("\t\t[elemName: string]: any;\n");
+		w.push("\t\tdiv: any;\n");
+		w.push("\t\tspan: any;\n");
+		w.push("\t\ttext: any;\n");
+		w.push("\t\timg: any;\n");
+		w.push("\t\tinput: any;\n");
+		w.push("\t}\n");
+		w.push("}\n\n");
 
 		Text.Append(*w);
 	}

@@ -22,7 +22,7 @@ enum class EJavascriptWidgetMode : uint8
 	WM_None = 255,
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptTransaction
 {
 	GENERATED_BODY()
@@ -38,7 +38,7 @@ public:
 #endif
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptWorkspaceItem
 {
 	GENERATED_BODY()
@@ -49,7 +49,7 @@ public:
 #endif
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptHitProxy
 {
 	GENERATED_BODY()
@@ -57,7 +57,7 @@ struct FJavascriptHitProxy
 	class HHitProxy* HitProxy;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptViewportClick
 {
 	GENERATED_BODY()
@@ -72,7 +72,7 @@ struct FJavascriptViewportClick
 	const FViewportClick* Click;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptPDI
 {
 	GENERATED_BODY()
@@ -90,7 +90,7 @@ struct FJavascriptPDI
 // forward decl
 class FExtensibilityManager;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptExtensibilityManager
 {
 	GENERATED_BODY()
@@ -105,6 +105,21 @@ public:
 	TSharedPtr<FExtensibilityManager> Handle;
 #endif
 };
+
+/** The severity of the message type */
+UENUM()
+namespace EJavascriptMessageSeverity
+{
+	/** Ordered according to their severity */
+	enum Type
+	{
+		CriticalError = 0,
+		Error = 1,
+		PerformanceWarning = 2,
+		Warning = 3,
+		Info = 4,	// Should be last
+	};
+}
 
 /**
  * 
@@ -360,6 +375,9 @@ class JAVASCRIPTEDITOR_API UJavascriptEditorLibrary : public UBlueprintFunctionL
 	static FJavascriptExtensibilityManager GetToolBarExtensibilityManager(FName What);
 
 	UFUNCTION(BlueprintCallable, Category = "Javascript | Editor")
+	static FJavascriptUICommandList GetLevelEditorActions();
+
+	UFUNCTION(BlueprintCallable, Category = "Javascript | Editor")
 	static void AddExtender(FJavascriptExtensibilityManager Manager, FJavascriptExtender Extender);
 	
 	UFUNCTION(BlueprintCallable, Category = "Javascript | Editor")
@@ -394,5 +412,17 @@ class JAVASCRIPTEDITOR_API UJavascriptEditorLibrary : public UBlueprintFunctionL
 
 	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
 	static bool MarkPackageDirty(UObject* InObject);
+
+	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
+	static void CreateLogListing(const FName& InLogName, const FText& InLabel);
+
+	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
+	static FJavascriptSlateWidget CreateLogListingWidget(const FName& InLogName);
+
+	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
+	static void AddLogListingMessage(const FName& InLogName, EJavascriptMessageSeverity::Type InSeverity, const FString& LogText);
+
+	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
+	static UEditorEngine* GetEngine();
 #endif
 };

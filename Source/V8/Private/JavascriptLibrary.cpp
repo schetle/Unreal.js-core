@@ -7,6 +7,7 @@
 #include "Sockets.h"
 #include "EngineUtils.h"
 #include "AI/Navigation//NavigationSystem.h"
+#include "HAL/PlatformApplicationMisc.h"
 #include "Modules/ModuleVersion.h"
 
 struct FPrivateSocketHandle
@@ -197,7 +198,7 @@ UDynamicBlueprintBinding* UJavascriptLibrary::GetDynamicBinding(UClass* Outer, T
 	return nullptr;
 }
 
-void UJavascriptLibrary::HandleSeamlessTravelPlayer(AGameMode* GameMode, AController*& C)
+void UJavascriptLibrary::HandleSeamlessTravelPlayer(AGameModeBase* GameMode, AController*& C)
 {
 	GameMode->HandleSeamlessTravelPlayer(C);
 }
@@ -268,13 +269,13 @@ FString UJavascriptLibrary::GetDir(UObject* Object, FString WhichDir)
 	else if (WhichDir == TEXT("EngineSaved")) return FPaths::EngineSavedDir();
 	else if (WhichDir == TEXT("EnginePlugins")) return FPaths::EnginePluginsDir();
 	else if (WhichDir == TEXT("Root")) return FPaths::RootDir();
-	else if (WhichDir == TEXT("Game")) return FPaths::GameDir();
-	else if (WhichDir == TEXT("GameUser")) return FPaths::GameUserDir();
-	else if (WhichDir == TEXT("GameContent")) return FPaths::GameContentDir();
-	else if (WhichDir == TEXT("GameConfig")) return FPaths::GameConfigDir();
-	else if (WhichDir == TEXT("GameSaved")) return FPaths::GameSavedDir();
-	else if (WhichDir == TEXT("GameIntermediate")) return FPaths::GameIntermediateDir();
-	else if (WhichDir == TEXT("GamePlugins")) return FPaths::GamePluginsDir();
+	else if (WhichDir == TEXT("Game")) return FPaths::ProjectDir();
+	else if (WhichDir == TEXT("GameUser")) return FPaths::ProjectUserDir();
+	else if (WhichDir == TEXT("GameContent")) return FPaths::ProjectContentDir();
+	else if (WhichDir == TEXT("GameConfig")) return FPaths::ProjectConfigDir();
+	else if (WhichDir == TEXT("GameSaved")) return FPaths::ProjectSavedDir();
+	else if (WhichDir == TEXT("GameIntermediate")) return FPaths::ProjectIntermediateDir();
+	else if (WhichDir == TEXT("GamePlugins")) return FPaths::ProjectPluginsDir();
 	else if (WhichDir == TEXT("SourceConfig")) return FPaths::SourceConfigDir();
 	else if (WhichDir == TEXT("GeneratedConfig")) return FPaths::GeneratedConfigDir();
 	else if (WhichDir == TEXT("Sandboxes")) return FPaths::SandboxesDir();
@@ -282,7 +283,7 @@ FString UJavascriptLibrary::GetDir(UObject* Object, FString WhichDir)
 	else if (WhichDir == TEXT("ScreenShot")) return FPaths::ScreenShotDir();
 	else if (WhichDir == TEXT("BugIt")) return FPaths::BugItDir();
 	else if (WhichDir == TEXT("VideoCapture")) return FPaths::VideoCaptureDir();
-	else if (WhichDir == TEXT("GameLog")) return FPaths::GameLogDir();
+	else if (WhichDir == TEXT("GameLog")) return FPaths::ProjectLogDir();
 	else if (WhichDir == TEXT("Automation")) return FPaths::AutomationDir();
 	else if (WhichDir == TEXT("AutomationTransient")) return FPaths::AutomationTransientDir();
 	else if (WhichDir == TEXT("AutomationLog")) return FPaths::AutomationLogDir();
@@ -344,7 +345,7 @@ void UJavascriptLibrary::GetAllActorsOfClassAndTags(UObject* WorldContextObject,
 {
 	OutActors.Empty();
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull);
 
 	// We do nothing if not class provided, rather than giving ALL actors!
 	if (ActorClass != NULL && World != nullptr)
@@ -412,13 +413,24 @@ void UJavascriptLibrary::SetObjectFlags(UObject* Obj, int32 Flags)
 	Obj->SetFlags((EObjectFlags)Flags);
 }
 
-void UJavascriptLibrary::ClearFlags(UObject* Obj)
+void UJavascriptLibrary::SetActorFlags(AActor* Actor, int32 Flags)
 {
-	Obj->ClearFlags(RF_AllFlags);
-}
+	TArray<AActor*> TargetActors;
+	TargetActors.Push(Actor);
+	while (TargetActors.Num() > 0)
+	{
+		auto TargetActor = TargetActors.Pop();
+		TargetActor->SetFlags(RF_Transient);
 
-int32 UJavascriptLibrary::GetMaskedFlags(UObject* Obj) {
-	return Obj->GetMaskedFlags();
+		TArray<UActorComponent*> OutComponents;
+		TargetActor->GetComponents(OutComponents, true);
+		for (const auto& Component : OutComponents)
+		{
+			Component->SetFlags(RF_Transient);
+		}
+
+		TargetActor->GetAllChildActors(TargetActors, true);
+	}
 }
 
 float UJavascriptLibrary::GetLastRenderTime(AActor* Actor)
@@ -637,6 +649,38 @@ TArray<UField*> UJavascriptLibrary::GetFields(const UObject* Object, bool bInclu
 	return Fields;
 }
 
+TArray<FJavscriptProperty> UJavascriptLibrary::GetStructProperties(const FString StructName, bool bIncludeSuper)
+{
+	TArray<FJavscriptProperty> Properties;
+
+	UStruct* Struct = FindObjectFast<UStruct>(NULL, *StructName, false, true);
+	if (Struct != nullptr)
+	{
+		// Make sure each field gets allocated into the array
+		for (TFieldIterator<UField> FieldIt(Struct, bIncludeSuper ? EFieldIteratorFlags::IncludeSuper : EFieldIteratorFlags::ExcludeSuper); FieldIt; ++FieldIt)
+		{
+			UField* Field = *FieldIt;
+
+			// Make sure functions also do their parameters and children first
+			if (UProperty* Property = dynamic_cast<UProperty*>(Field))
+			{
+				FJavscriptProperty JavascriptProperty;
+				
+				FString Type = Property->GetCPPType();
+				if (auto p = Cast<UArrayProperty>(Property))
+				{
+					Type += TEXT("/") + p->Inner->GetCPPType();
+				}
+				JavascriptProperty.Type = Type;
+				JavascriptProperty.Name = Property->GetName();
+                
+				Properties.Add(JavascriptProperty);
+			}
+		}
+	}
+    return Properties;
+}
+
 int32 UJavascriptLibrary::GetFunctionParmsSize(UFunction* Function)
 {
 	return Function->ParmsSize;
@@ -644,13 +688,13 @@ int32 UJavascriptLibrary::GetFunctionParmsSize(UFunction* Function)
 
 void UJavascriptLibrary::ClipboardCopy(const FString& String)
 {
-	FPlatformMisc::ClipboardCopy(*String);
+	FPlatformApplicationMisc::ClipboardCopy(*String);
 }
 
 FString UJavascriptLibrary::ClipboardPaste()
 {
 	FString OutString;
-	FPlatformMisc::ClipboardPaste(OutString);
+	FPlatformApplicationMisc::ClipboardPaste(OutString);
 	return OutString;
 }
 
@@ -725,4 +769,11 @@ TArray<UClass*> UJavascriptLibrary::GetSuperClasses(UClass* InClass)
 bool UJavascriptLibrary::IsGeneratedByBlueprint(UClass* InClass)
 {
 	return NULL != Cast<UBlueprint>(InClass->ClassGeneratedBy);
+}
+
+bool UJavascriptLibrary::IsPendingKill(AActor* InActor)
+{
+	if (InActor != nullptr)
+		return InActor->IsPendingKill();
+	return true;
 }

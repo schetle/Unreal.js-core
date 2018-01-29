@@ -30,7 +30,7 @@ TSharedPtr<SHeaderRow> UJavascriptTreeView::GetHeaderRowWidget()
 			{
 				if (OnGenerateRowEvent.IsBound())
 				{
-					Column.Widget = OnGenerateRowEvent.Execute(nullptr, Column.Id, this);
+					Column.Widget = OnGenerateRowEvent.Execute(nullptr, FName(*Column.Id), this);
 					ColumnWidgets.Add(Column.Widget);
 				}
 			}
@@ -41,7 +41,7 @@ TSharedPtr<SHeaderRow> UJavascriptTreeView::GetHeaderRowWidget()
 			}
 
 			HeaderRowWidget->AddColumn(
-				SHeaderRow::Column(Column.Id)
+				SHeaderRow::Column(FName(*Column.Id))
 				.FillWidth(Column.Width)
 				[
 					Column.Widget->TakeWidget()
@@ -60,7 +60,7 @@ TSharedPtr<SHeaderRow> UJavascriptTreeView::GetHeaderRowWidget()
 TSharedRef<SWidget> UJavascriptTreeView::RebuildWidget()
 {
 	TSharedRef<SScrollBar> ExternalScrollbar = SNew(SScrollBar).Style(&ScrollBarStyle);
-	TSharedRef<SWidget> MyView = StaticCastSharedRef<SWidget>
+	return StaticCastSharedRef<SWidget>
 	(
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
@@ -110,8 +110,6 @@ TSharedRef<SWidget> UJavascriptTreeView::RebuildWidget()
 		]
 		]
 	);
-
-	return BuildDesignTimeWidget(MyView);
 }
 
 void UJavascriptTreeView::ProcessEvent(UFunction* Function, void* Parms)
@@ -188,7 +186,7 @@ public:
 			}
 		}
 
-		if (TreeView->IsA(UJavascriptTreeView::StaticClass()) && ColumnName == TreeView->Columns[0].Id)
+		if (TreeView->IsA(UJavascriptTreeView::StaticClass()) && ColumnName == FName(*TreeView->Columns[0].Id))
 		{
 			// The first column gets the tree expansion arrow for this row
 			return

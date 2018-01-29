@@ -7,6 +7,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "IV8.h"
 #include "JavascriptStats.h"
 #include "JavascriptSettings.h"
+#include "Containers/Ticker.h"
 
 DEFINE_STAT(STAT_V8IdleTask);
 DEFINE_STAT(STAT_JavascriptDelegate);
@@ -35,7 +36,7 @@ static float GV8IdleTaskBudget = 1 / 60.0f;
 UJavascriptSettings::UJavascriptSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	V8Flags = TEXT("--harmony --harmony-shipping --es-staging --expose-debug-as=v8debug --expose-gc --harmony_simd");
+	V8Flags = TEXT("--harmony --harmony-shipping --es-staging --expose-gc");
 }
 
 void UJavascriptSettings::Apply() const
@@ -58,7 +59,7 @@ public:
 		return platform_;
 	}
 	FUnrealJSPlatform() 
-		: platform_(platform::CreateDefaultPlatform())
+		: platform_(platform::CreateDefaultPlatform(0, platform::IdleTaskSupport::kEnabled))
 	{
 		TickDelegate = FTickerDelegate::CreateRaw(this, &FUnrealJSPlatform::HandleTicker);
 		TickHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
@@ -109,6 +110,12 @@ public:
 	{
 		return platform_->MonotonicallyIncreasingTime();
 	}
+#if V8_MAJOR_VERSION > 5
+	v8::TracingController* GetTracingController() override
+	{
+		return platform_->GetTracingController();
+	}
+#endif
 
 	void RunIdleTasks(float Budget)
 	{
@@ -194,7 +201,7 @@ public:
 
 	static FString GetPluginScriptsDirectory4()
 	{
-		return FPaths::GamePluginsDir() / "UnrealJS/Content/Scripts/";
+		return FPaths::ProjectPluginsDir() / "UnrealJS/Content/Scripts/";
 	}
 
 	static FString GetPakPluginScriptsDirectory()
@@ -204,7 +211,7 @@ public:
 
 	static FString GetGameScriptsDirectory()
 	{
-		return FPaths::GameContentDir() / "Scripts/";
+		return FPaths::ProjectContentDir() / "Scripts/";
 	}
 
 	virtual void AddGlobalScriptSearchPath(const FString& Path) override

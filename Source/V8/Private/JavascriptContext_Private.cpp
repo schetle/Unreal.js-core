@@ -90,7 +90,7 @@ static void SetFunctionFlags(UFunction* Function, const TArray<FString>& Flags)
 {
 	static struct FKeyword {
 		const TCHAR* Keyword;
-		int32 Flags;
+		EFunctionFlags Flags;
 	} Keywords[] = {
 		{ TEXT("Exec"), FUNC_Exec },
 		{ TEXT("Server"), FUNC_Net | FUNC_NetServer },
@@ -135,7 +135,7 @@ static void SetClassFlags(UClass* Class, const TArray<FString>& Flags)
 {
 	static struct FKeyword {
 		const TCHAR* Keyword;
-		uint64 Flags;
+		EClassFlags Flags;
 	} Keywords[] = {
 		{ TEXT("Abstract"), CLASS_Abstract },
 		{ TEXT("DefaultConfig"), CLASS_DefaultConfig },
@@ -189,7 +189,7 @@ static void SetStructFlags(UScriptStruct* Struct, const TArray<FString>& Flags)
 {
 	static struct FKeyword {
 		const TCHAR* Keyword;
-		uint64 Flags;
+		EStructFlags Flags;
 	} Keywords[] = {
 		{ TEXT("Atomic"), STRUCT_Atomic },
 		{ TEXT("Immutable"), STRUCT_Immutable }
@@ -1008,7 +1008,7 @@ public:
 				auto MakeFunction = [&]() {
 					Function = NewObject<UJavascriptGeneratedFunction>(Class, NewFunctionName, RF_Public);
 					Function->JavascriptContext = Context->AsShared();
-					Function->RepOffset = MAX_uint16;
+					//Function->RepOffset = MAX_uint16;
 					Function->ReturnValueOffset = MAX_uint16;
 					Function->FirstPropertyToInit = NULL;
 
@@ -1148,7 +1148,7 @@ public:
 				Class->Children = Function;
 
 				// Add the function to it's owner class function name -> function map
-				Class->AddFunctionToFunctionMap(Function);
+				Class->AddFunctionToFunctionMap(Function, Function->GetFName());
 
 				return true;
 			};
@@ -1356,7 +1356,7 @@ public:
 				FString Text;
 				if (FFileHelper::LoadFileToString(Text, *script_path))
 				{
-					Text = FString::Printf(TEXT("(function (global,__dirname) { var module = { exports : {}, filename : __dirname }, exports = module.exports; (function () { %s\n })()\n;return module.exports;}(this,'%s'));"), *Text, *script_path);
+					Text = FString::Printf(TEXT("(function (global, __filename, __dirname) { var module = { exports : {}, filename : __filename }, exports = module.exports; (function () { %s\n })()\n;return module.exports;}(this,'%s', '%s'));"), *Text, *script_path, *FPaths::GetPath(script_path));
 					auto exports = Self->RunScript(full_path, Text, 0);
 					if (exports.IsEmpty())
 					{
@@ -1497,21 +1497,6 @@ public:
 				}
 
 				return Dirs;
-			};
-
-			auto load_node_modules = [&](FString base_path)
-			{
-				TArray<FString> paths = load_module_paths(base_path);
-				auto founded = false;
-				for (const auto& path : paths)
-				{
-					if (inner2(path / TEXT("node_modules")))
-					{
-						founded = true;
-						break;
-					}
-				}
-				return founded;
 			};
 
 			auto current_script_path = FPaths::GetPath(StringFromV8(StackTrace::CurrentStackTrace(isolate, 1, StackTrace::kScriptName)->GetFrame(0)->GetScriptName()));
@@ -1730,9 +1715,7 @@ public:
 		auto Script = ReadScriptFile(Filename);
 
 		auto ScriptPath = GetScriptFileFullPath(Filename);
-
-		auto Text = FString::Printf(TEXT("(function (global,__dirname) { %s\n;}(this,'%s'));"), *Script, *ScriptPath);
-
+		auto Text = FString::Printf(TEXT("(function (global,__filename,__dirname) { %s\n;}(this,'%s','%s'));"), *Script, *ScriptPath, *FPaths::GetPath(ScriptPath));
 		return RunScript(ScriptPath, Text, 0);
 	}
 
@@ -1755,6 +1738,12 @@ public:
 			UE_LOG(Javascript, Log, TEXT("%s"), *str);
 		}
 		return str;
+	}
+
+	void RequestV8GarbageCollection()
+	{
+		// @todo: using 'ForTesting' function
+		isolate()->RequestGarbageCollectionForTesting(Isolate::kFullGarbageCollection);
 	}
 
 	// Should be guarded with proper handle scope
@@ -1889,7 +1878,7 @@ public:
 						FString ParameterWithValue = Parameter;
 						if (!MetadataCppDefaultValue.IsEmpty())
 						{
-							const uint32 ExportFlags = PPF_Localized;
+							const uint32 ExportFlags = PPF_None;
 							auto Buffer = It->ContainerPtrToValuePtr<uint8>(Parms);
 							const TCHAR* Result = It->ImportText(*MetadataCppDefaultValue, Buffer, ExportFlags, NULL);
 							if (Result)
@@ -2164,7 +2153,7 @@ FJavascriptContext* FJavascriptContext::Create(TSharedPtr<FJavascriptIsolate> In
 
 inline void FJavascriptContextImplementation::AddReferencedObjects(UObject * InThis, FReferenceCollector & Collector)
 {
-	Public_RunScript(TEXT("gc();"), false);
+	RequestV8GarbageCollection();
 
 	// All objects
 	for (auto It = ObjectToObjectMap.CreateIterator(); It; ++It)

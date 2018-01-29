@@ -18,6 +18,9 @@ namespace EJavasrciptUserInterfaceActionType
 {
 	enum Type
 	{
+		/** An action which should not be associated with a user interface action */
+		None,
+
 		/** Momentary buttons or menu items.  These support enable state, and execute a delegate when clicked. */
 		Button,
 
@@ -28,11 +31,14 @@ namespace EJavasrciptUserInterfaceActionType
 		RadioButton,
 
 		/** Similar to Button but will display a readonly checkbox next to the item. */
-		Check
+		Check,
+
+		/** Similar to Button but has the checkbox area collapsed */
+		CollapsedButton
 	};
 }
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptUICommandInfo
 {
 	GENERATED_BODY()
@@ -65,7 +71,7 @@ struct FJavascriptUICommand
 	FJavascriptUICommandInfo CommandInfo;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptMenuBuilder
 {
 	GENERATED_BODY()
@@ -76,7 +82,7 @@ struct FJavascriptMenuBuilder
 	FToolBarBuilder* ToolBar = nullptr;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptUICommandList
 {
 	GENERATED_BODY()
@@ -89,7 +95,7 @@ struct FJavascriptUICommandList
 	}
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptBindingContext
 {
 	GENERATED_BODY()
@@ -108,7 +114,7 @@ public:
 };
 
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct JAVASCRIPTUMG_API FJavascriptExtender
 {
 	GENERATED_BODY()
@@ -125,7 +131,7 @@ public:
 	TSharedPtr<FExtender> Handle;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptExtensionBase
 {
 	GENERATED_BODY()

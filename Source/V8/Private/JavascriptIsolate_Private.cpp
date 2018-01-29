@@ -367,7 +367,7 @@ public:
 			GetSelf(isolate)->OnGCEvent(true, type, flags);
 		});
 
-#if V8_MINOR_VERSION < 3
+#if V8_MAJOR_VERSION == 5 && V8_MINOR_VERSION < 3
 		isolate_->AddMemoryAllocationCallback([](ObjectSpace space, AllocationAction action,int size) {
 			OnMemoryAllocationEvent(space, action, size);
 		}, kObjectSpaceAll, kAllocationActionAll);
@@ -857,7 +857,10 @@ public:
 				}
 				else
 				{
-					I.Throw(TEXT("Needed struct data"));
+					if (nullptr == p->Struct->GetOwnerClass())
+						I.Throw(FString::Printf(TEXT("Needed struct data : [null] %s"), *p->Struct->GetName()));
+					else
+						I.Throw(FString::Printf(TEXT("Needed struct data : %s %s"), *p->Struct->GetOwnerClass()->GetName(), *p->Struct->GetName()));
 				}
 			}
 			else
@@ -900,7 +903,7 @@ public:
 			if (p->Enum)
 			{
 				auto Str = StringFromV8(Value);
-				auto EnumValue = p->Enum->GetIndexByName(FName(*Str), true);
+				auto EnumValue = p->Enum->GetIndexByName(FName(*Str), EGetByNameFlags::None);
 				if (EnumValue == INDEX_NONE)
 				{
 					I.Throw(FString::Printf(TEXT("Enum Text %s for Enum %s failed to resolve to any value"), *Str, *p->Enum->GetName()));
@@ -918,7 +921,7 @@ public:
 		else if (auto p = Cast<UEnumProperty>(Property))
 		{
 			auto Str = StringFromV8(Value);
-			auto EnumValue = p->GetEnum()->GetIndexByName(FName(*Str), true);
+			auto EnumValue = p->GetEnum()->GetIndexByName(FName(*Str), EGetByNameFlags::None);
 			if (EnumValue == INDEX_NONE)
 			{
 				I.Throw(FString::Printf(TEXT("Enum Text %s for Enum %s failed to resolve to any value"), *Str, *p->GetName()));
@@ -1053,6 +1056,12 @@ public:
 	void ExportMisc(Local<ObjectTemplate> global_templ)
 	{
 		FIsolateHelper I(isolate_);
+
+		auto fileManagerCwd = [](const FunctionCallbackInfo<Value>& info)
+		{
+			info.GetReturnValue().Set(V8_String(info.GetIsolate(), IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(L"."))); // FPaths::ProjectDir()
+        };
+		global_templ->Set(I.Keyword("$cwd"), I.FunctionTemplate(fileManagerCwd));
 
 #if WITH_EDITOR
 		auto exec_editor = [](const FunctionCallbackInfo<Value>& info) 
@@ -2545,7 +2554,7 @@ public:
 		typedef typename WeakData::ValueType WeakDataValueInitType;
 		typedef TPairInitializer<WeakDataKeyInitType, WeakDataValueInitType> InitializerType;
 
-#if V8_MINOR_VERSION < 3
+#if V8_MAJOR_VERSION == 5 && V8_MINOR_VERSION < 3
 		Handle.template SetWeak<WeakData>(new WeakData(InitializerType(GetContext(), GarbageCollectedObject)), [](const WeakCallbackData<U, WeakData>& data) {
 			auto Parameter = data.GetParameter();
 

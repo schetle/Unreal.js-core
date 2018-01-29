@@ -7,7 +7,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "JavascriptUMGLibrary.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptSlateStyle
 {
 	GENERATED_BODY()
@@ -15,7 +15,7 @@ struct FJavascriptSlateStyle
 	TSharedPtr<FSlateStyleSet> Handle;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FJavascriptSlateWidget
 {
 	GENERATED_BODY()
@@ -96,15 +96,15 @@ class JAVASCRIPTUMG_API UJavascriptUMGLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
 	static FJavascriptSlateWidget TakeWidget(UWidget* Widget);
 
+	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
+	static UWidget* SetContent(UNativeWidgetHost* TargetWidget, FJavascriptSlateWidget SlateWidget);
+
 	UFUNCTION(BlueprintCallable, Category = "Javascript | Editor")
 	static void AddWindowAsNativeChild(FJavascriptSlateWidget NewWindow, FJavascriptSlateWidget RootWindow);
 
 	UFUNCTION(BlueprintCallable, Category = "Javascript | Editor")
-	static void AddWindow(FJavascriptSlateWidget NewWindow);
+	static void AddWindow(FJavascriptSlateWidget NewWindow, const bool bShowImmediately = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Javascript | Editor")
 	static FVector2D GenerateDynamicImageResource(const FName InDynamicBrushName);
-	
-	UFUNCTION(BlueprintCallable, Category = "Scripting | Javascript")
-	static FVector2D ComputeDesiredSize(UWidget* Widget, float LayoutScaleMultiplier);
 };
